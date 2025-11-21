@@ -5,7 +5,7 @@ import time
 
 def main():
     # Load your CSV
-    df = pd.read_csv(r"e:\Big-Data\Kafka\Producer\full_data.csv")
+    df = pd.read_csv(r"../Dataset/full_data.csv")
 
     # Configure Kafka Producer
     producer = KafkaProducer(
