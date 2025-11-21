@@ -2,7 +2,7 @@ from kafka import KafkaConsumer
 import json
 
 def main():
-    topic_name = '../Dataset/full_data.csv'
+    topic_name = 'football_dataset_events'
 
     consumer = KafkaConsumer(
         topic_name,
