@@ -2,7 +2,6 @@ import subprocess
 import time
 import os
 
-# Adjust Kafka directory if needed
 KAFKA_DIR = r"C:\kafka"
 
 ZK_START = os.path.join(KAFKA_DIR, "bin", "windows", "zookeeper-server-start.bat")
