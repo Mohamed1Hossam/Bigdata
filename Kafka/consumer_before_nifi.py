@@ -3,6 +3,7 @@ import json
 
 TOPIC_NAME = "football_dataset_events"
 BOOTSTRAP_SERVERS = ["localhost:9092"]
+
 GROUP_ID = "football-consumer-group"
 OUTPUT_FILE = "consumed_events.json"  # standard JSON (array of objects)
 
