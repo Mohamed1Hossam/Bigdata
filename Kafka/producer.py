@@ -3,28 +3,46 @@ from kafka import KafkaProducer
 import json
 import time
 
-def main():
-    # Load your CSV
-    df = pd.read_csv(r"../Dataset/full_data.csv")
+TOPIC_NAME = "football_dataset_events"
+BOOTSTRAP_SERVERS = ["localhost:9092"]
+CSV_PATH = "../Dataset/full_data.csv"
+SLEEP_SECONDS = 0.1   # delay between rows to simulate live stream
 
-    # Configure Kafka Producer
+
+def create_producer():
     producer = KafkaProducer(
-        bootstrap_servers='localhost:9092',
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+        bootstrap_servers=BOOTSTRAP_SERVERS,
+        value_serializer=lambda v: json.dumps(v).encode("utf-8")
     )
+    return producer
 
-    topic_name = 'football_dataset_events'
 
-    # Send each row as a Kafka message
-    for _, row in df.iterrows():
+def stream_csv_to_kafka(csv_path, producer, topic, sleep_seconds=0.1):
+    df = pd.read_csv(csv_path)
+
+    total_rows = len(df)
+    print(f"Starting to stream {total_rows} rows from CSV to Kafka topic '{topic}'...")
+
+    for idx, (_, row) in enumerate(df.iterrows(), start=1):
         event = row.to_dict()
-        producer.send(topic_name, value=event)
-        producer.flush()
+        producer.send(topic, value=event)
 
-        print(f"Sent event: {str(event).encode('utf-8', errors='ignore').decode('utf-8')}")
-        time.sleep(0.1)
+        print(f"[{idx}/{total_rows}] Sent event: {json.dumps(event, ensure_ascii=False)}")
 
-    print("All events sent!")
+        if sleep_seconds:
+            time.sleep(sleep_seconds)
+
+    producer.flush()
+    print("All events sent and flushed.")
+
+
+def main():
+    producer = create_producer()
+    try:
+        stream_csv_to_kafka(CSV_PATH, producer, TOPIC_NAME, SLEEP_SECONDS)
+    finally:
+        producer.close()
+        print("Producer closed.")
 
 if __name__ == "__main__":
     main()
