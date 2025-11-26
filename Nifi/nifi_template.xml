@@ -255,16 +255,16 @@
             <persistsState>false</persistsState>
             <properties>
                 <entry>
-                    <key>schema-application-strategy</key>
-                    <value>SELECTED_PART</value>
-                </entry>
-                <entry>
                     <key>schema-name</key>
                     <value>${schema.name}</value>
                 </entry>
                 <entry>
                     <key>starting-field-strategy</key>
                     <value>ROOT_NODE</value>
+                </entry>
+                <entry>
+                    <key>schema-application-strategy</key>
+                    <value>SELECTED_PART</value>
                 </entry>
                 <entry>
                     <key>schema-access-strategy</key>
@@ -430,10 +430,6 @@
             <persistsState>false</persistsState>
             <properties>
                 <entry>
-                    <key>compression-level</key>
-                    <value>1</value>
-                </entry>
-                <entry>
                     <key>Pretty Print JSON</key>
                     <value>false</value>
                 </entry>
@@ -456,6 +452,10 @@
                 <entry>
                     <key>schema-name</key>
                     <value>${schema.name}</value>
+                </entry>
+                <entry>
+                    <key>compression-level</key>
+                    <value>1</value>
                 </entry>
                 <entry>
                     <key>schema-access-strategy</key>
@@ -857,6 +857,10 @@
                 <penaltyDuration>30 sec</penaltyDuration>
                 <properties>
                     <entry>
+                        <key>max.poll.records</key>
+                        <value>10000</value>
+                    </entry>
+                    <entry>
                         <key>record-writer</key>
                         <value>f3fd9892-b5e6-3746-0000-000000000000</value>
                     </entry>
@@ -874,6 +878,10 @@
                         <value>names</value>
                     </entry>
                     <entry>
+                        <key>security.protocol</key>
+                        <value>PLAINTEXT</value>
+                    </entry>
+                    <entry>
                         <key>max-uncommit-offset-wait</key>
                         <value>1 secs</value>
                     </entry>
@@ -882,28 +890,12 @@
                         <value>GSSAPI</value>
                     </entry>
                     <entry>
-                        <key>honor-transactions</key>
-                        <value>true</value>
-                    </entry>
-                    <entry>
-                        <key>record-reader</key>
-                        <value>6541b3ff-589c-3de1-0000-000000000000</value>
-                    </entry>
-                    <entry>
-                        <key>message-header-encoding</key>
-                        <value>UTF-8</value>
-                    </entry>
-                    <entry>
-                        <key>max.poll.records</key>
-                        <value>10000</value>
-                    </entry>
-                    <entry>
-                        <key>security.protocol</key>
-                        <value>PLAINTEXT</value>
-                    </entry>
-                    <entry>
                         <key>sasl.token.auth</key>
                         <value>false</value>
+                    </entry>
+                    <entry>
+                        <key>honor-transactions</key>
+                        <value>true</value>
                     </entry>
                     <entry>
                         <key>Communications Timeout</key>
@@ -916,6 +908,14 @@
                     <entry>
                         <key>separate-by-key</key>
                         <value>false</value>
+                    </entry>
+                    <entry>
+                        <key>record-reader</key>
+                        <value>6541b3ff-589c-3de1-0000-000000000000</value>
+                    </entry>
+                    <entry>
+                        <key>message-header-encoding</key>
+                        <value>UTF-8</value>
                     </entry>
                     <entry>
                         <key>key-attribute-encoding</key>
@@ -1271,30 +1271,6 @@
                         <value>none</value>
                     </entry>
                     <entry>
-                        <key>record-writer</key>
-                        <value>f3fd9892-b5e6-3746-0000-000000000000</value>
-                    </entry>
-                    <entry>
-                        <key>bootstrap.servers</key>
-                        <value>localhost:9092</value>
-                    </entry>
-                    <entry>
-                        <key>sasl.mechanism</key>
-                        <value>GSSAPI</value>
-                    </entry>
-                    <entry>
-                        <key>max.block.ms</key>
-                        <value>5 sec</value>
-                    </entry>
-                    <entry>
-                        <key>record-reader</key>
-                        <value>6541b3ff-589c-3de1-0000-000000000000</value>
-                    </entry>
-                    <entry>
-                        <key>message-header-encoding</key>
-                        <value>UTF-8</value>
-                    </entry>
-                    <entry>
                         <key>ack.wait.time</key>
                         <value>5 secs</value>
                     </entry>
@@ -1303,8 +1279,16 @@
                         <value>true</value>
                     </entry>
                     <entry>
+                        <key>record-writer</key>
+                        <value>f3fd9892-b5e6-3746-0000-000000000000</value>
+                    </entry>
+                    <entry>
                         <key>acks</key>
                         <value>all</value>
+                    </entry>
+                    <entry>
+                        <key>bootstrap.servers</key>
+                        <value>localhost:9092</value>
                     </entry>
                     <entry>
                         <key>security.protocol</key>
@@ -1315,8 +1299,16 @@
                         <value>1 MB</value>
                     </entry>
                     <entry>
+                        <key>sasl.mechanism</key>
+                        <value>GSSAPI</value>
+                    </entry>
+                    <entry>
                         <key>sasl.token.auth</key>
                         <value>false</value>
+                    </entry>
+                    <entry>
+                        <key>max.block.ms</key>
+                        <value>5 sec</value>
                     </entry>
                     <entry>
                         <key>Failure Strategy</key>
@@ -1329,6 +1321,14 @@
                     <entry>
                         <key>topic</key>
                         <value>sh</value>
+                    </entry>
+                    <entry>
+                        <key>record-reader</key>
+                        <value>6541b3ff-589c-3de1-0000-000000000000</value>
+                    </entry>
+                    <entry>
+                        <key>message-header-encoding</key>
+                        <value>UTF-8</value>
                     </entry>
                 </properties>
                 <retryCount>10</retryCount>
@@ -1465,5 +1465,5 @@
             <type>org.apache.nifi.processors.standard.UpdateRecord</type>
         </processors>
     </snippet>
-    <timestamp>11/25/2025 20:51:16 EET</timestamp>
+    <timestamp>11/26/2025 01:49:07 EET</timestamp>
 </template>
