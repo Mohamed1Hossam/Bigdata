@@ -1,11 +1,33 @@
 from kafka import KafkaConsumer
 import json
+import math
 
 TOPIC_NAME = "football_dataset_events"
 BOOTSTRAP_SERVERS = ["localhost:9092"]
 
 GROUP_ID = "football-consumer-group"
 OUTPUT_FILE = "consumed_events.json"  # standard JSON (array of objects)
+
+
+def replace_nan_values(obj, replacement=None):
+    """
+    Recursively replace NaN values in a dictionary or list.
+    
+    Args:
+        obj: The object to process (dict, list, or primitive)
+        replacement: Value to replace NaN with (None, 0, "", or "NaN")
+    
+    Returns:
+        The object with NaN values replaced
+    """
+    if isinstance(obj, dict):
+        return {key: replace_nan_values(value, replacement) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_nan_values(item, replacement) for item in obj]
+    elif isinstance(obj, float) and math.isnan(obj):
+        return replacement
+    else:
+        return obj
 
 
 def create_consumer():
@@ -31,6 +53,10 @@ def consume_to_json_file():
         try:
             for message in consumer:
                 event = message.value
+                
+                # Replace NaN values with null (or choose: 0, "", "NaN")
+                event = replace_nan_values(event, replacement=None)
+                
                 line = json.dumps(event, ensure_ascii=False)
 
                 print(f"Offset {message.offset}: {line}")
