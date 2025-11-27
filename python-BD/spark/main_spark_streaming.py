@@ -32,6 +32,17 @@ def create_spark_session():
         .config("spark.sql.shuffle.partitions", "2") \
         .getOrCreate()
 
+def write_to_mysql(df, table_name):
+    """Write DataFrame to MySQL - using overwrite to avoid duplicates"""
+    df.write \
+        .format("jdbc") \
+        .option("url", "jdbc:mysql://localhost:3306/Big_Data_DB") \
+        .option("driver", "com.mysql.cj.jdbc.Driver") \
+        .option("dbtable", table_name) \
+        .option("user", "root") \
+        .option("password", "1234") \
+        .mode("overwrite") \
+        .save()
 
 def main():
     """Main execution function"""
@@ -80,6 +91,7 @@ def main():
             .format("memory") \
             .queryName("player_stats") \
             .trigger(processingTime="5 seconds") \
+            .option("checkpointLocation", "D:/Bigdata-project/checkpoints/player_stats") \
             .start()
         
         logger.info("Stream started - Writing to in-memory table 'player_stats'")
@@ -111,6 +123,13 @@ def main():
                 logger.info("=" * 70)
                 result_df.show(20, truncate=False)
                 
+                # Write player stats to MySQL database
+                try:
+                    write_to_mysql(result_df, "player_statistics")
+                    logger.info("✓ Player statistics written to MySQL successfully")
+                except Exception as e:
+                    logger.error(f"✗ Error writing player statistics to MySQL: {e}")
+                
                 # TEAM SUMMARY
                 team_df = spark.sql("""
                     SELECT 
@@ -130,8 +149,12 @@ def main():
                 logger.info("=" * 70)
                 team_df.show(10, truncate=False)
                 
-                
-                # MATCH SUMMARY  *** NEW THIRD ANALYSIS **a*
+                try:
+                    write_to_mysql(team_df, "team_summary")
+                    logger.info("✓ Team summary written to MySQL successfully")
+                except Exception as e:
+                    logger.error(f"✗ Error writing team summary to MySQL: {e}")
+                # MATCH SUMMARY
                 match_df = spark.sql("""
                     SELECT
                         match_id,
@@ -143,12 +166,15 @@ def main():
                     GROUP BY match_id
                     ORDER BY goals_in_match DESC
                 """)
-                
+                try:
+                    write_to_mysql(match_df, "match_summary")
+                    logger.info("✓ Match summary written to MySQL successfully")
+                except Exception as e:
+                    logger.error(f"✗ Error writing match summary to MySQL: {e}")
                 logger.info("\n" + "=" * 70)
-                logger.info("MATCH SUMMARY (NEW):")
+                logger.info("MATCH SUMMARY:")
                 logger.info("=" * 70)
                 match_df.show(10, truncate=False)
-
             else:
                 logger.info("Waiting for data... (Make sure producer is sending events)")
         
@@ -162,9 +188,9 @@ def main():
         logger.info("Shutting down gracefully...")
         if 'spark' in locals():
             spark.stop()
-            
-# for spark Running  command 
-# spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4 --master local[2] "C:\Users\Mina_\Desktop\python-BD\spark\main_spark_streaming.py"
+
+# For Spark running command:
+# spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4 --jars D:\path\to\mysql-connector-java-8.0.33.jar --master local[2] "C:\Users\Mina_\Desktop\python-BD\spark\main_spark_streaming.py"
 
 if __name__ == "__main__":
     main()

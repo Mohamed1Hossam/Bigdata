@@ -7,7 +7,7 @@ OUTPUT_TOPIC = "processed_football_events"
 BOOTSTRAP_SERVERS = ["localhost:9092"]
 
 # This file is created by NiFi (PutFile, or any output processor)
-NIFI_OUTPUT_FILE = "kafka/nifi_output.json"   # must contain a JSON array
+NIFI_OUTPUT_FILE = "python-BD\\kafka\\nifi_output.json"
 
 
 def create_producer():
