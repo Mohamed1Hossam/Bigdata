@@ -36,7 +36,7 @@ def write_to_mysql(df, table_name):
     """Write DataFrame to MySQL - using overwrite to avoid duplicates"""
     df.write \
         .format("jdbc") \
-        .option("url", "jdbc:mysql://localhost:3307/Big_Data_DB") \
+        .option("url", "jdbc:mysql://localhost:3306/Big_Data_DB") \
         .option("driver", "com.mysql.cj.jdbc.Driver") \
         .option("dbtable", table_name) \
         .option("user", "root") \

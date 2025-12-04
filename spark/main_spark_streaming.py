@@ -81,7 +81,7 @@ def write_to_mysql(df, table_name):
         .option("driver", "com.mysql.cj.jdbc.Driver") \
         .option("dbtable", table_name) \
         .option("user", "root") \
-        .option("password", "1234") \
+        .option("password", "Gtrs3695$") \
         .mode("overwrite") \
         .save()
 
