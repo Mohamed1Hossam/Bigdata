@@ -75,7 +75,17 @@ event_schema = StructType([
 
 
 
-
+def write_to_mysql(df, table_name):
+    """Write DataFrame to MySQL - using overwrite to avoid duplicates"""
+    df.write \
+        .format("jdbc") \
+        .option("url", "jdbc:mysql://localhost:3306/football_analytics_db") \
+        .option("driver", "com.mysql.cj.jdbc.Driver") \
+        .option("dbtable", table_name) \
+        .option("user", "root") \
+        .option("password", "1234") \
+        .mode("overwrite") \
+        .save()
 
 def main():
 
@@ -152,8 +162,6 @@ def main():
     print("\n________________________________ TEAM SUMMARY ___________________________________________")
     team_summary.show(truncate=False)
 
-  
-
     incident_exploded = df_parsed.withColumn("incident", explode("INC"))
 
 
@@ -168,7 +176,20 @@ def main():
 
     print("\n__________________________ INCIDENTS (INC) _____________________________________")
     incident_summary.show(truncate=False)
+    try:
+        write_to_mysql(match_summary, "match_summary")
+    except Exception as e:
+        print("Error writing match_summary:", e)
 
+    try:
+        write_to_mysql(team_summary, "team_summary")
+    except Exception as e:
+        print("Error writing team_summary:", e)
+
+    try:
+        write_to_mysql(incident_summary, "incident_summary")
+    except Exception as e:
+        print("Error writing incident_summary:", e)
     spark.stop()
 
 
