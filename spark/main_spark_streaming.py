@@ -1,11 +1,9 @@
-
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, sum as sum_, count, explode
 from pyspark.sql.types import *
-import json
-from pyspark.sql.functions import col,lit , coalesce
-from pyspark.sql.functions import col, from_json, decode,when
+from pyspark.sql.functions import lit, coalesce, expr, when
 
+# Define the event schema
 event_schema = StructType([
     StructField("HomeScore", IntegerType(), True),
     StructField("H_Throw_in", DoubleType(), True),
@@ -89,26 +87,43 @@ def write_to_mysql(df, table_name):
 
 def main():
 
+    import sys
+    import io
+    if sys.platform == "win32":
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    
+
     spark = SparkSession.builder \
         .appName("FootballMatchBatchJob") \
         .getOrCreate()
 
     spark.sparkContext.setLogLevel("WARN")
 
+    print("\n==> Reading data from Kafka topic 'processed_football_events'...\n")
+
+ 
     df = spark.read \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("subscribe", "processed_football_events") \
+        .option("startingOffsets", "earliest") \
+        .option("endingOffsets", "latest") \
         .load()
 
+    print(f"==> Total records read from Kafka: {df.count()}\n")
 
+
+    array_schema = ArrayType(event_schema)
+    
     df_parsed = df.select(
-    from_json(col("value").cast("string"), event_schema).alias("data")
-).select("data.*")
+        from_json(col("value").cast("string"), array_schema).alias("data_array")
+    ).select(
+        explode(col("data_array")).alias("data")
+    ).select("data.*")
 
 
 
-
+    # Match Summary
     match_summary = df_parsed.select(
         col("Home").alias("home_team"),
         col("Away").alias("away_team"),
@@ -118,30 +133,23 @@ def main():
         col("Round"),
         col("H_Score"),
         col("A_Score"),
-        col("WIN"),
-    
+        col("WIN")
     ).withColumn(
         "total_match_goals",
         coalesce(col("H_Score"), lit(0)) + coalesce(col("A_Score"), lit(0))
     )
 
-
-
-
-
-    print("\n__________________________ MATCH SUMMARY _____________________________________")
-    match_summary.show(truncate=False)
-
-   
-
+    # Team Summary
     team_summary = df_parsed.select(
-        col("Home").alias("team"), col("H_Score").alias("goals"),
+        col("Home").alias("team"), 
+        col("H_Score").alias("goals"),
         col("H_Shots_on_Goal").alias("shots_on_goal"),
         col("H_Fouls").alias("fouls"),
         col("H_Corner_Kicks").alias("corners")
     ).union(
         df_parsed.select(
-            col("Away").alias("team"), col("A_Score").alias("goals"),
+            col("Away").alias("team"), 
+            col("A_Score").alias("goals"),
             col("A_Shots_on_Goal").alias("shots_on_goal"),
             col("A_Fouls").alias("fouls"),
             col("A_Corner_Kicks").alias("corners")
@@ -163,16 +171,15 @@ def main():
     team_summary.show(truncate=False)
 
     incident_exploded = df_parsed.withColumn("incident", explode("INC"))
-
-
+    
     incident_summary = incident_exploded.groupBy("Home", "Away", "Date", "Time").agg(
-    count(col("incident.raw")).alias("num_incidents")
-).withColumn(
-    "time importance",
-    when(col("num_incidents") > 5, "high importance")
-    .when(col("num_incidents") > 2, "medium importance")
-    .otherwise("low importance")
-)
+        count(col("incident.raw")).alias("num_incidents")
+    ).withColumn(
+        "time_importance",
+        when(col("num_incidents") > 5, "high importance")
+        .when(col("num_incidents") > 2, "medium importance")
+        .otherwise("low importance")
+    )
 
     print("\n__________________________ INCIDENTS (INC) _____________________________________")
     incident_summary.show(truncate=False)
@@ -200,6 +207,7 @@ if __name__ == "__main__":
 
 
 
+
 # C:\kafka>.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
             
 # PS C:\Users\Mina_> cd C:\kafka
@@ -212,4 +220,4 @@ if __name__ == "__main__":
     
     
 # for spark Running  command 
-# spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4 --master local[2] "C:\Users\Mina_\Desktop\python-BD\spark\main_spark_streaming.py"
+# 
