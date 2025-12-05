@@ -71,20 +71,16 @@ event_schema = StructType([
     StructField("match_result_category", StringType(), True)
 ])
 
-
-
-def write_to_mysql(df, table_name):
-    """Write DataFrame to MySQL - using overwrite to avoid duplicates"""
+def write_to_mysql(df, batch_id):
     df.write \
         .format("jdbc") \
         .option("url", "jdbc:mysql://localhost:3306/Big_Data_DB") \
         .option("driver", "com.mysql.cj.jdbc.Driver") \
-        .option("dbtable", table_name) \
+        .option("dbtable", "YOUR_TABLE_NAME") \
         .option("user", "root") \
         .option("password", "Gtrs3695$") \
-        .mode("overwrite") \
+        .mode("append") \
         .save()
-
 def main():
 
     import sys
@@ -101,28 +97,21 @@ def main():
 
     print("\n==> Reading data from Kafka topic 'processed_football_events'...\n")
 
- 
-    df = spark.read \
+    df_stream = spark.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("subscribe", "processed_football_events") \
         .option("startingOffsets", "earliest") \
-        .option("endingOffsets", "latest") \
         .load()
-
-    print(f"==> Total records read from Kafka: {df.count()}\n")
-
+    
 
     array_schema = ArrayType(event_schema)
-    
-    df_parsed = df.select(
+    df_parsed = df_stream.select(
         from_json(col("value").cast("string"), array_schema).alias("data_array")
     ).select(
         explode(col("data_array")).alias("data")
     ).select("data.*")
-
-
-
+    
     # Match Summary
     match_summary = df_parsed.select(
         col("Home").alias("home_team"),
@@ -136,40 +125,34 @@ def main():
         col("WIN")
     ).withColumn(
         "total_match_goals",
-        coalesce(col("H_Score"), lit(0)) + coalesce(col("A_Score"), lit(0))
-    )
+        col("H_Score") +col("A_Score"))
 
     # Team Summary
     team_summary = df_parsed.select(
-        col("Home").alias("team"), 
-        col("H_Score").alias("goals"),
-        col("H_Shots_on_Goal").alias("shots_on_goal"),
-        col("H_Fouls").alias("fouls"),
-        col("H_Corner_Kicks").alias("corners")
-    ).union(
-        df_parsed.select(
-            col("Away").alias("team"), 
-            col("A_Score").alias("goals"),
-            col("A_Shots_on_Goal").alias("shots_on_goal"),
-            col("A_Fouls").alias("fouls"),
-            col("A_Corner_Kicks").alias("corners")
-        )
-    ).groupBy("team").agg(
-        sum_("goals").alias("total_goals"),
-        sum_("shots_on_goal").alias("total_shots_on_goal"),
-        sum_("fouls").alias("total_fouls"),
-        sum_("corners").alias("total_corners")
-    ).withColumn(
-    "team_class", 
-    when(col("total_goals") > 10, "super team")
-    .when(col("total_goals") > 5, "soccer team")
-    .otherwise("average team")
-).orderBy(col("total_goals").desc())
-
-
-    print("\n________________________________ TEAM SUMMARY ___________________________________________")
-    team_summary.show(truncate=False)
-
+            col("Home").alias("team"),
+            col("H_Score").alias("goals"),
+            col("H_Shots_on_Goal").alias("shots_on_goal"),
+            col("H_Fouls").alias("fouls"),
+            col("H_Corner_Kicks").alias("corners")
+        ).union(
+            df_parsed.select(
+                col("Away").alias("team"),
+                col("A_Score").alias("goals"),
+                col("A_Shots_on_Goal").alias("shots_on_goal"),
+                col("A_Fouls").alias("fouls"),
+                col("A_Corner_Kicks").alias("corners")
+            )
+        ).groupBy("team").agg(
+            sum_("goals").alias("total_goals"),
+            sum_("shots_on_goal").alias("total_shots_on_goal"),
+            sum_("fouls").alias("total_fouls"),
+            sum_("corners").alias("total_corners")
+        ).withColumn(
+            "team_class",
+            when(col("total_goals") > 10, "super team")
+            .when(col("total_goals") > 5, "soccer team")
+            .otherwise("average team"))
+    # Incident Summary
     incident_exploded = df_parsed.withColumn("incident", explode("INC"))
     
     incident_summary = incident_exploded.groupBy("Home", "Away", "Date", "Time").agg(
@@ -181,43 +164,47 @@ def main():
         .otherwise("low importance")
     )
 
-    print("\n__________________________ INCIDENTS (INC) _____________________________________")
-    incident_summary.show(truncate=False)
-    try:
-        write_to_mysql(match_summary, "match_summary")
-    except Exception as e:
-        print("Error writing match_summary:", e)
+    # Display results in console
+  
+    # match_summary.writeStream \
+    # .outputMode("append") \
+    # .format("console") \
+    # .option("truncate", False) \
+    # .start()
+    
+    # team_summary.writeStream \
+    # .outputMode("complete") \
+    # .format("console") \
+    # .option("truncate", False) \
+    # .start()
+    
+    
+    # incident_summary.writeStream \
+    # .outputMode("complete") \
+    # .format("console") \
+    # .option("truncate", False) \
+    # .start()
+    #send result to DB
+    match_summary.writeStream \
+        .foreachBatch(lambda df, batch_id: write_to_mysql(df, batch_id, "match_summary")) \
+        .outputMode("append") \
+        .start()
 
-    try:
-        write_to_mysql(team_summary, "team_summary")
-    except Exception as e:
-        print("Error writing team_summary:", e)
+    team_summary.writeStream \
+        .foreachBatch(lambda df, batch_id: write_to_mysql(df, batch_id, "team_summary")) \
+        .outputMode("complete") \
+        .start()
 
-    try:
-        write_to_mysql(incident_summary, "incident_summary")
-    except Exception as e:
-        print("Error writing incident_summary:", e)
+    incident_summary.writeStream \
+        .foreachBatch(lambda df, batch_id: write_to_mysql(df, batch_id, "incident_summary")) \
+        .outputMode("complete") \
+        .start()
+    spark.streams.awaitAnyTermination()
+ 
+
     spark.stop()
 
 
 if __name__ == "__main__":
     main()
 
-
-
-
-
-
-# C:\kafka>.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
-            
-# PS C:\Users\Mina_> cd C:\kafka
-# PS C:\kafka> .\bin\windows\kafka-server-start.bat .\config\server.properties
-
-
-
-    # PS C:\kafka> .\bin\windows\kafka-topics.bat --list --bootstrap-server localhost:9092   
-    
-    
-    
-# for spark Running  command 
-# 
