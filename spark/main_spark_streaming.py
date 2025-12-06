@@ -71,16 +71,17 @@ event_schema = StructType([
     StructField("match_result_category", StringType(), True)
 ])
 
-def write_to_mysql(df, batch_id):
+def write_to_mysql(df, batch_id, table_name):
     df.write \
         .format("jdbc") \
         .option("url", "jdbc:mysql://localhost:3306/Big_Data_DB") \
         .option("driver", "com.mysql.cj.jdbc.Driver") \
-        .option("dbtable", "YOUR_TABLE_NAME") \
+        .option("dbtable", table_name) \
         .option("user", "root") \
         .option("password", "Gtrs3695$") \
         .mode("append") \
         .save()
+
 def main():
 
     import sys
@@ -152,8 +153,9 @@ def main():
             when(col("total_goals") > 10, "super team")
             .when(col("total_goals") > 5, "soccer team")
             .otherwise("average team"))
-    # Incident Summary
-    incident_exploded = df_parsed.withColumn("incident", explode("INC"))
+    
+ 
+    incident_exploded = df_parsed.filter(col("INC").isNotNull()).withColumn("incident", explode("INC"))
     
     incident_summary = incident_exploded.groupBy("Home", "Away", "Date", "Time").agg(
         count(col("incident.raw")).alias("num_incidents")
